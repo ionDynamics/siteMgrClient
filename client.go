@@ -37,7 +37,7 @@ var (
 	insecure    = flag.Bool("insecure", false, "Allow insecure connections")
 	noTelemetry = flag.Bool("noTelemetry", false, "Disable sending metrics to server")
 
-	VERSION            = "0.7.0"
+	VERSION            = "0.7.1"
 	protocolConstraint = ">= 0.7.0"
 
 	updater = &selfupdate.Updater{
@@ -246,7 +246,7 @@ func main() {
 				say("Notice from server:", string(msg.Body))
 
 			case msgType.CLIPCONTENT:
-				clip(string(msg.Body))
+				clip <- string(msg.Body)
 
 			case msgType.DEC_CREDENTIALS:
 				sites <- &siteMgr.Site{
@@ -292,7 +292,7 @@ func main() {
 					continue
 				}
 
-				clip(crypto.Decrypt(pw, cred.Password))
+				clip <- crypto.Decrypt(pw, cred.Password)
 			}
 
 		}

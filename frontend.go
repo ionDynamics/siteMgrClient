@@ -11,6 +11,13 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+var before string
+var clip = make(chan string)
+
+func init() {
+	go loop()
+}
+
 func getFullname(s *bufio.Scanner) string {
 	var fullname string
 	if !*noEnv {
@@ -128,22 +135,43 @@ func returnPw(pwch chan string) {
 		return
 	}
 
-	clip(pwd)
+	clip <- pwd
 }
 
-func clip(str string) {
-	before, err := clipboard.ReadAll()
+func loop() {
+	for {
+		str := <-clip
+		copy(str)
+		say("\aClipboard restored")
+	}
+}
+
+func copy(str string) {
+	var err error
+	if before == "" {
+		before, err = clipboard.ReadAll()
+	}
 	clipboard.WriteAll(str)
 	say("\aCopied to clipboard! ")
-	time.Sleep(5 * time.Second)
-	say("Restoring clipboard in 5 seconds...")
-	time.Sleep(5 * time.Second)
-	if err != nil {
-		clipboard.WriteAll("")
-	} else {
-		clipboard.WriteAll(before)
+
+	select {
+	case <-time.After(5 * time.Second):
+		say("Restoring clipboard in 5 seconds...")
+	case str = <-clip:
+		copy(str)
 	}
-	say("\aClipboard restored")
+
+	select {
+	case <-time.After(5 * time.Second):
+		if err != nil {
+			clipboard.WriteAll("")
+		} else {
+			clipboard.WriteAll(before)
+		}
+	case str = <-clip:
+		copy(str)
+	}
+
 }
 
 func getString(s *bufio.Scanner) (string, error) {
