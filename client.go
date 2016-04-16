@@ -37,7 +37,7 @@ var (
 	insecure    = flag.Bool("insecure", false, "Allow insecure connections")
 	noTelemetry = flag.Bool("noTelemetry", false, "Disable sending metrics to server")
 
-	VERSION            = "0.7.1"
+	VERSION            = "0.7.2"
 	protocolConstraint = ">= 0.7.0"
 
 	updater = &selfupdate.Updater{
@@ -212,6 +212,17 @@ func main() {
 				}
 				conn.Close()
 				os.Exit(0)
+			}
+		}()
+
+		go func() {
+			for {
+				<-time.After(4 * time.Minute)
+				hbmsg, err := encoder.Do(msgType.HEARTBEAT)
+				if err == nil {
+					err = enc.Encode(hbmsg)
+				}
+				idl.Debug(hbmsg, err)
 			}
 		}()
 
